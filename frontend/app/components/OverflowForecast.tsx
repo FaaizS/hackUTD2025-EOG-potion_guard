@@ -34,7 +34,6 @@ interface OverflowForecastProps {
 export default function OverflowForecast({ currentDateTime }: OverflowForecastProps) {
   const [forecastData, setForecastData] = useState<ForecastData[]>([]);
   const [allCauldrons, setAllCauldrons] = useState<CauldronInfo[]>([]);
-  const [selectedCauldron, setSelectedCauldron] = useState<(ForecastData & { cauldron_name: string }) | null>(null);
 
   useEffect(() => {
     // Fetch all cauldrons once on mount
@@ -122,8 +121,7 @@ export default function OverflowForecast({ currentDateTime }: OverflowForecastPr
             return (
               <div
                 key={cauldron.cauldron_id}
-                onClick={() => setSelectedCauldron(cauldron)}
-                className={`p-2.5 rounded-lg ${getStatusStyle(cauldron.eta_minutes)} flex flex-col cursor-pointer hover:opacity-80 transition-opacity`}
+                className={`p-2.5 rounded-lg ${getStatusStyle(cauldron.eta_minutes)} flex flex-col`}
               >
                 <h3 className="font-bold text-[11px] mb-1.5 leading-tight break-words">
                   {cauldron.cauldron_name}
@@ -145,82 +143,6 @@ export default function OverflowForecast({ currentDateTime }: OverflowForecastPr
               </div>
             );
           })}
-        </div>
-      )}
-      
-      {/* Cauldron Detail Modal */}
-      {selectedCauldron && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedCauldron(null)}
-        >
-          <div 
-            className="bg-black/80 backdrop-blur-md rounded-lg border-2 border-purple-300/50 p-6 max-w-md w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-2xl font-bold" style={{fontFamily: "'Playfair Display', serif"}}>
-                {selectedCauldron.cauldron_name}
-              </h3>
-              <button
-                onClick={() => setSelectedCauldron(null)}
-                className="text-gray-300 hover:text-white text-2xl leading-none"
-              >
-                ×
-              </button>
-            </div>
-            
-            {/* Cauldron Details */}
-            <div className="space-y-4">
-              <div className={`p-4 rounded-lg ${getStatusStyle(selectedCauldron.eta_minutes)}`}>
-                <p className="text-sm text-gray-300 mb-1">Status</p>
-                <p className={`text-lg font-bold ${getStatusTextColor(selectedCauldron.eta_minutes)}`}>
-                  {selectedCauldron.eta_minutes < 30 ? '🔴 Critical - Immediate Action Required' : 
-                   selectedCauldron.eta_minutes < 120 ? '🟡 Warning - Action Needed Soon' : 
-                   '🟢 Safe - No Immediate Concern'}
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/10 p-3 rounded-lg">
-                  <p className="text-sm text-gray-300 mb-1">Current Level</p>
-                  <p className="text-xl font-bold">{selectedCauldron.current_level.toFixed(1)}L</p>
-                </div>
-                
-                <div className="bg-white/10 p-3 rounded-lg">
-                  <p className="text-sm text-gray-300 mb-1">Max Capacity</p>
-                  <p className="text-xl font-bold">{selectedCauldron.max_volume.toFixed(1)}L</p>
-                </div>
-                
-                <div className="bg-white/10 p-3 rounded-lg">
-                  <p className="text-sm text-gray-300 mb-1">Fill Percentage</p>
-                  <p className="text-xl font-bold">
-                    {((selectedCauldron.current_level / selectedCauldron.max_volume) * 100).toFixed(1)}%
-                  </p>
-                </div>
-                
-                <div className="bg-white/10 p-3 rounded-lg">
-                  <p className="text-sm text-gray-300 mb-1">Fill Rate</p>
-                  <p className="text-xl font-bold">{selectedCauldron.r_fill.toFixed(2)}L/min</p>
-                </div>
-              </div>
-              
-              <div className="bg-white/10 p-4 rounded-lg">
-                <p className="text-sm text-gray-300 mb-1">Overflow ETA</p>
-                <p className="text-2xl font-bold">
-                  {selectedCauldron.eta_minutes < 999 
-                    ? `${(selectedCauldron.eta_minutes / 60).toFixed(1)} hours (${selectedCauldron.eta_minutes.toFixed(0)} minutes)`
-                    : 'No data available'}
-                </p>
-              </div>
-              
-              <div className="bg-white/10 p-3 rounded-lg">
-                <p className="text-sm text-gray-300 mb-1">Cauldron ID</p>
-                <p className="text-sm font-mono">{selectedCauldron.cauldron_id}</p>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
