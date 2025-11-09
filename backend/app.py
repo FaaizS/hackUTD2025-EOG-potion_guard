@@ -304,6 +304,12 @@ def api_optimized_routes():
     Generates collection routes for witches to prevent cauldron overflows.
     Uses greedy algorithm prioritizing fullest cauldrons.
     
+    NOTE: This is a simplified greedy approach (star routes from market to fullest cauldrons).
+    A fully optimal solution would require implementing a TSP (Traveling Salesman Problem)
+    solver or similar optimization algorithm to minimize total travel time/distance across
+    all routes while ensuring all cauldrons are collected before overflow. This remains
+    as a future enhancement opportunity.
+    
     Input JSON (optional):
       {
         "witches": 1,              # Number of collection witches

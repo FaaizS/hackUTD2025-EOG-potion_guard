@@ -83,11 +83,11 @@ export default function OverflowForecast({ currentDateTime }: OverflowForecastPr
    */
   const getStatusStyle = (etaMinutes: number) => {
     if (etaMinutes < 30) {
-      return "bg-red-100 border-red-500 border-2";
+      return "bg-red-900/50 border-red-500/80 border-2";
     } else if (etaMinutes < 120) {
-      return "bg-yellow-100 border-yellow-500 border-2";
+      return "bg-yellow-900/50 border-yellow-500/80 border-2";
     } else {
-      return "bg-green-100 border-green-500 border-2";
+      return "bg-green-900/50 border-green-500/80 border-2";
     }
   };
 
@@ -105,8 +105,8 @@ export default function OverflowForecast({ currentDateTime }: OverflowForecastPr
   };
 
   return (
-    <div className="w-full h-full bg-gray-50 rounded-lg border-2 border-gray-300 p-4 flex flex-col">
-      <h2 className="text-xl font-bold mb-3">Overflow Forecast</h2>
+    <div className="w-full h-full bg-black/30 backdrop-blur-sm rounded-lg border-2 border-purple-300/50 p-4 flex flex-col">
+      <h2 className="text-xl font-bold mb-3" style={{fontFamily: "'Playfair Display', serif"}}>Overflow Forecast</h2>
       
       {allCauldrons.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">

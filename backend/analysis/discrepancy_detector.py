@@ -288,8 +288,9 @@ def match_tickets(drains: List[Dict], tickets: List[Dict],
     # Step 4: Compare and find discrepancies
     discrepancies = []
     
-    # Get all unique (date, cauldron) pairs
-    all_dates = set(drains_by_day.keys()) | set(tickets_by_day.keys())
+    # Only include dates where we have actual drain data (cauldron readings)
+    # This excludes dates with tickets but no monitoring data
+    all_dates = set(drains_by_day.keys())
     
     for date in sorted(all_dates):
         drain_cauldrons = drains_by_day.get(date, {})

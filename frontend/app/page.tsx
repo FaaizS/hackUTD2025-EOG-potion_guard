@@ -12,9 +12,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import PlaybackSlider from "@/app/components/PlaybackSlider";
 import OverflowForecast from "@/app/components/OverflowForecast";
+import DiscrepancyTable from "@/app/components/DiscrepancyTable";
 import { getDiscrepancies } from "@/app/lib/apiClient";
 
 // Dynamically import Map component with SSR disabled for Leaflet compatibility
@@ -58,11 +60,13 @@ export default function Home() {
         
         setDiscrepancies(dataWithTimes);
         
-        // Initialize timeline to first data point at midnight
+        // Initialize timeline to just before first data point (so stats show zero initially)
         if (dataWithTimes.length > 0) {
           const dates = dataWithTimes.map((d: any) => d.date).sort();
           const firstDate = new Date(dates[0] + "T00:00:00Z");
-          setSelectedDateTime(firstDate.toISOString());
+          // Set initial time to 1 hour before first data to ensure zero state
+          const initialDate = new Date(firstDate.getTime() - 60 * 60 * 1000);
+          setSelectedDateTime(initialDate.toISOString());
         }
       } catch (error) {
         console.error("Error fetching discrepancies:", error);
@@ -94,18 +98,24 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-8 bg-white flex items-center justify-center">
+      <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-600">Loading Dashboard...</p>
+          <p className="text-2xl font-bold text-gray-300">Loading Dashboard...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen p-8 bg-white">
+    <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Potion Guard</h1>
+        <div className="flex items-center justify-center gap-3 text-sm text-gray-300">
+          <Image src="/eog.png" alt="EOG Logo" width={32} height={32} />
+          <span>EOG HackUTD Challenge</span>
+        </div>
+        <h1 className="text-6xl font-serif font-bold text-center text-golden my-6" style={{fontFamily: "'Young Serif', serif", color: "#FFD700"}}>
+          Potion Guard
+        </h1>
 
         {/* Two-Column Layout: Map (60%) and Forecast (40%) */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -134,59 +144,24 @@ export default function Home() {
           />
         )}
         
-        {/* Stats Summary */}
-        <div className="grid grid-cols-2 gap-4 mt-8">
-          <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200">
-            <p className="text-sm text-gray-600">Loss Incidents</p>
-            <p className="text-3xl font-bold text-red-600">{totalLosses}</p>
+        {/* Discrepancy Table with Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-8">
+          {/* Left Column: Discrepancy Table */}
+          <div className="md:col-span-3">
+            <DiscrepancyTable discrepancies={filteredDiscrepancies} />
           </div>
-          <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
-            <p className="text-sm text-gray-600">Total Lost</p>
-            <p className="text-3xl font-bold text-orange-600">{totalLostVolume.toFixed(1)}L</p>
+
+          {/* Right Column: Stacked Stats */}
+          <div className="md:col-span-2 md:pt-16"> 
+            <div className="mb-8">
+              <p className="text-xl text-gray-300">Loss Incidents</p>
+              <p className="text-6xl font-bold text-red-500">{totalLosses}</p>
+            </div>
+            <div>
+              <p className="text-xl text-gray-300">Total Lost</p>
+              <p className="text-6xl font-bold text-orange-500">{totalLostVolume.toFixed(1)}L</p>
+            </div>
           </div>
-        </div>
-        
-        {/* Discrepancy Table */}
-        <div className="w-full mt-8">
-          <h2 className="text-2xl font-bold mb-4">
-            Discrepancy Analysis 
-            <span className="text-base font-normal text-gray-600 ml-2">
-              (Showing {filteredDiscrepancies.length} of {discrepancies.length} records)
-            </span>
-          </h2>
-          
-          {filteredDiscrepancies.length === 0 ? (
-            <div className="text-center p-8 bg-gray-50 rounded-lg">
-              <p className="text-gray-600">No data available for this date range</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2">Date</th>
-                    <th className="border border-gray-300 p-2">Cauldron</th>
-                    <th className="border border-gray-300 p-2">Expected (L)</th>
-                    <th className="border border-gray-300 p-2">Actual (L)</th>
-                    <th className="border border-gray-300 p-2">Discrepancy (L)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDiscrepancies.map((item: Discrepancy, idx: number) => (
-                    <tr key={idx} className={item.missing_volume > 0 ? "bg-red-50" : "bg-yellow-50"}>
-                      <td className="border border-gray-300 p-2">{item.date}</td>
-                      <td className="border border-gray-300 p-2">{item.cauldron_name}</td>
-                      <td className="border border-gray-300 p-2">{item.expected_volume.toFixed(2)}</td>
-                      <td className="border border-gray-300 p-2">{item.actual_volume.toFixed(2)}</td>
-                      <td className={`border border-gray-300 p-2 ${item.missing_volume > 0 ? "text-red-600 font-bold" : "text-yellow-700 font-bold"}`}>
-                        {item.missing_volume > 0 ? '+' : ''}{item.missing_volume.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
     </main>

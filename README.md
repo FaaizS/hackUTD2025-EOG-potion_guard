@@ -1,4 +1,4 @@
-# Potion Guard Dashboard
+# Potion Guard
 
 A real-time monitoring system for detecting discrepancies in potion collection data. The system analyzes cauldron drain events and compares them with official transport tickets to identify potential theft or leakage.
 

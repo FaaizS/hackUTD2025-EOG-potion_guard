@@ -15,18 +15,15 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { getCauldrons } from "@/app/lib/apiClient";
 
-// Configure default marker icons for Next.js/Webpack compatibility
-const defaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+// Configure custom cauldron marker icon
+const cauldronIcon = L.icon({
+  iconUrl: "/cauldron.png",
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
 });
 
-L.Marker.prototype.options.icon = defaultIcon;
+L.Marker.prototype.options.icon = cauldronIcon;
 
 interface Cauldron {
   id: string;
@@ -76,7 +73,7 @@ export default function MapComponent() {
   const centerLng = -97.133;
 
   return (
-    <div className="w-full h-full rounded-lg overflow-hidden border-2 border-gray-300">
+    <div className="w-full h-full rounded-lg overflow-hidden border-2 border-purple-300/50">
       <MapContainer
         center={[centerLat, centerLng]}
         zoom={15}

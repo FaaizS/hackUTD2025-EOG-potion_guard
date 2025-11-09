@@ -157,8 +157,8 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
   };
 
   return (
-    <div className="w-full mt-8 p-4 bg-gray-50 rounded-lg border border-gray-300">
-      <h2 className="text-xl font-bold mb-4">Time Travel - Filter by Date & Time (6-hour intervals)</h2>
+    <div className="w-full mt-8 p-4 bg-black/30 backdrop-blur-sm rounded-lg border-2 border-purple-300/50">
+      <h2 className="text-xl font-bold mb-4" style={{fontFamily: "'Playfair Display', serif"}}>Potion Log Replay (6-hour intervals)</h2>
       <div className="space-y-3">
         {/* Playback Controls */}
         <div className="flex justify-center gap-3">
