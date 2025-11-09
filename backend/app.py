@@ -181,6 +181,25 @@ def matches_endpoint():
     matches = match_tickets(drains, tickets, eps_pct=eps_pct, eps_abs=eps_abs, dummy_penalty=dummy_penalty)
     return jsonify({"matches": matches})
 
+@app.route("/api/discrepancies", methods=["GET"])
+def api_discrepancies():
+    """
+    Faaiz's main discrepancy detection endpoint.
+    Returns a clean list of discrepancies for the frontend to display.
+    """
+    start = int(request.args.get("start_date", 0))
+    end = int(request.args.get("end_date", 2_000_000_000))
+    
+    # Fetch the data
+    records = fetch_json(ENDPOINTS["data"], params={"start_date": start, "end_date": end})
+    tickets_payload = fetch_json(ENDPOINTS["tickets"])
+    
+    # Run Faaiz's analysis
+    drains = detect_all_drains_from_records(records)
+    discrepancies = match_tickets(drains, tickets_payload)
+    
+    return jsonify(discrepancies)
+
 @app.route("/bootstrap", methods=["GET"])
 def bootstrap():
     start = int(request.args.get("start_date", 0))

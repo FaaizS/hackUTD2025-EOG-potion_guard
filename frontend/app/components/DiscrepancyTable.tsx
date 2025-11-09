@@ -1,8 +1,17 @@
 import { getDiscrepancies } from "@/app/lib/apiClient";
 
+interface Discrepancy {
+  date: string;
+  cauldron_id: string;
+  cauldron_name: string;
+  expected_volume: number;
+  actual_volume: number;
+  missing_volume: number;
+}
+
 export default async function DiscrepancyTable() {
-  // TODO(Araohat): Fetch real data from the apiClient
-  const discrepancies = await getDiscrepancies();
+  // Fetch real data from the backend
+  const discrepancies: Discrepancy[] = await getDiscrepancies();
 
   return (
     <div className="w-full mt-8">
@@ -18,13 +27,15 @@ export default async function DiscrepancyTable() {
           </tr>
         </thead>
         <tbody>
-          {discrepancies.map((item, idx) => (
-            <tr key={idx}>
+          {discrepancies.map((item: Discrepancy, idx: number) => (
+            <tr key={idx} className={item.missing_volume > 0 ? "bg-red-50" : ""}>
               <td className="border border-gray-300 p-2">{item.date}</td>
-              <td className="border border-gray-300 p-2">{item.cauldron}</td>
-              <td className="border border-gray-300 p-2">{item.expected}</td>
-              <td className="border border-gray-300 p-2">{item.actual}</td>
-              <td className="border border-gray-300 p-2">{item.missing}</td>
+              <td className="border border-gray-300 p-2">{item.cauldron_name}</td>
+              <td className="border border-gray-300 p-2">{item.expected_volume}</td>
+              <td className="border border-gray-300 p-2">{item.actual_volume}</td>
+              <td className={`border border-gray-300 p-2 ${item.missing_volume > 0 ? "text-red-600 font-bold" : ""}`}>
+                {item.missing_volume}
+              </td>
             </tr>
           ))}
         </tbody>
