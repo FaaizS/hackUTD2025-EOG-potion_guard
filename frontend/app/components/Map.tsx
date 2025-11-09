@@ -57,7 +57,7 @@ export default function MapComponent() {
 
   if (loading) {
     return (
-      <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+      <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
         <p className="text-gray-600">Loading map...</p>
       </div>
     );
@@ -65,7 +65,7 @@ export default function MapComponent() {
 
   if (cauldrons.length === 0) {
     return (
-      <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+      <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
         <p className="text-gray-600">No cauldron data available</p>
       </div>
     );
@@ -76,7 +76,7 @@ export default function MapComponent() {
   const centerLng = -97.133;
 
   return (
-    <div className="w-full h-96 rounded-lg overflow-hidden border-2 border-gray-300">
+    <div className="w-full h-full rounded-lg overflow-hidden border-2 border-gray-300">
       <MapContainer
         center={[centerLat, centerLng]}
         zoom={15}

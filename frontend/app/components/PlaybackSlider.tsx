@@ -24,9 +24,9 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Convert date strings to timestamps for calculations
-  const minTime = new Date(minDate + "T00:00:00").getTime();
-  const maxTime = new Date(maxDate + "T23:59:59").getTime();
+  // Convert date strings to timestamps for calculations (using UTC)
+  const minTime = new Date(minDate + "T00:00:00Z").getTime();
+  const maxTime = new Date(maxDate + "T23:59:59Z").getTime();
   const currentTime = new Date(currentDateTime).getTime();
   
   // Calculate current slider position as percentage (0-100)
@@ -39,6 +39,8 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
       intervalRef.current = setInterval(() => {
         const sixHoursMs = 6 * 60 * 60 * 1000;
         const currentMs = new Date(currentDateTime).getTime();
+        
+        // Calculate next 6-hour interval by adding 6 hours and rounding down
         const newMs = currentMs + sixHoursMs;
         
         // Stop auto-play when reaching the end of timeline
@@ -48,13 +50,21 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
           return;
         }
         
-        // Round to nearest 6-hour interval (0, 6, 12, 18)
-        const newDate = new Date(newMs);
-        const hours = newDate.getHours();
-        const roundedHours = Math.round(hours / 6) * 6 % 24;
-        newDate.setHours(roundedHours, 0, 0, 0);
+        // Round to nearest 6-hour interval using milliseconds (avoids DST issues)
+        // Get the date components to reconstruct with proper 6-hour intervals
+        const tempDate = new Date(newMs);
+        const year = tempDate.getUTCFullYear();
+        const month = tempDate.getUTCMonth();
+        const day = tempDate.getUTCDate();
+        const hours = tempDate.getUTCHours();
         
-        onDateTimeChange(newDate.toISOString());
+        // Round hours down to nearest 6-hour interval
+        const roundedHours = Math.floor(hours / 6) * 6;
+        
+        // Create new date with rounded time (using UTC to avoid timezone issues)
+        const roundedDate = new Date(Date.UTC(year, month, day, roundedHours, 0, 0, 0));
+        
+        onDateTimeChange(roundedDate.toISOString());
       }, 1000)
       
       return () => {
@@ -82,13 +92,20 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
     const sliderValue = Number(e.target.value);
     const newTimestamp = minTime + (sliderValue / 100) * totalRange;
     
-    // Snap to 6-hour intervals: 0, 6, 12, or 18
-    const date = new Date(newTimestamp);
-    const hour = date.getHours();
-    const roundedHour = Math.floor(hour / 6) * 6;
-    date.setHours(roundedHour, 0, 0, 0);
+    // Snap to 6-hour intervals using UTC to avoid timezone issues
+    const tempDate = new Date(newTimestamp);
+    const year = tempDate.getUTCFullYear();
+    const month = tempDate.getUTCMonth();
+    const day = tempDate.getUTCDate();
+    const hours = tempDate.getUTCHours();
     
-    onDateTimeChange(date.toISOString());
+    // Round hours down to nearest 6-hour interval
+    const roundedHours = Math.floor(hours / 6) * 6;
+    
+    // Create new date with rounded time
+    const roundedDate = new Date(Date.UTC(year, month, day, roundedHours, 0, 0, 0));
+    
+    onDateTimeChange(roundedDate.toISOString());
   };
 
   /**
@@ -97,7 +114,7 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
    */
   const handlePlayPause = () => {
     if (!isPlaying && currentTime >= maxTime) {
-      const startDate = new Date(minDate + "T00:00:00");
+      const startDate = new Date(minDate + "T00:00:00Z");
       onDateTimeChange(startDate.toISOString());
     }
     setIsPlaying(!isPlaying);
@@ -108,7 +125,7 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
    */
   const handleReset = () => {
     setIsPlaying(false);
-    const startDate = new Date(minDate + "T00:00:00");
+    const startDate = new Date(minDate + "T00:00:00Z");
     onDateTimeChange(startDate.toISOString());
   };
 
@@ -122,7 +139,8 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'UTC'
     });
   };
   
@@ -130,10 +148,11 @@ export default function PlaybackSlider({ minDate, maxDate, currentDateTime, onDa
    * Formats date only for range labels
    */
   const formatDateOnly = (dateStr: string) => {
-    const date = new Date(dateStr + "T00:00:00");
+    const date = new Date(dateStr + "T00:00:00Z");
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
   };
 

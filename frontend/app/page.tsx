@@ -1,10 +1,11 @@
 /**
- * Home Page - Potion Guard Dashboard
+ * Home Page - Potion Guard
  * 
  * Main dashboard displaying:
  * - Interactive map of cauldron locations
- * - Statistics summary (cauldrons, incidents, volume lost)
+ * - Overflow forecast panel
  * - Time playback slider for filtering
+ * - Statistics summary (incidents, volume lost)
  * - Discrepancy analysis table
  */
 
@@ -13,13 +14,14 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import PlaybackSlider from "@/app/components/PlaybackSlider";
+import OverflowForecast from "@/app/components/OverflowForecast";
 import { getDiscrepancies } from "@/app/lib/apiClient";
 
 // Dynamically import Map component with SSR disabled for Leaflet compatibility
 const MapComponent = dynamic(() => import("@/app/components/Map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+    <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
       <p className="text-gray-600">Loading map...</p>
     </div>
   ),
@@ -44,22 +46,22 @@ export default function Home() {
       try {
         const data = await getDiscrepancies();
         
-        // Assign random times throughout each day for time-based filtering
+        // Assign times to 6-hour intervals throughout each day (0, 6, 12, 18)
         const dataWithTimes = data.map((d: Discrepancy) => {
-          const randomHour = Math.floor(Math.random() * 24);
+          const sixHourIntervals = [0, 6, 12, 18];
+          const randomInterval = sixHourIntervals[Math.floor(Math.random() * sixHourIntervals.length)];
           return {
             ...d,
-            timestamp: `${d.date}T${String(randomHour).padStart(2, '0')}:00:00`
+            timestamp: `${d.date}T${String(randomInterval).padStart(2, '0')}:00:00Z`
           };
         });
         
         setDiscrepancies(dataWithTimes);
         
-        // Initialize timeline to start one day before first data point
+        // Initialize timeline to first data point at midnight
         if (dataWithTimes.length > 0) {
           const dates = dataWithTimes.map((d: any) => d.date).sort();
-          const firstDate = new Date(dates[0] + "T00:00:00");
-          firstDate.setDate(firstDate.getDate() - 1);
+          const firstDate = new Date(dates[0] + "T00:00:00Z");
           setSelectedDateTime(firstDate.toISOString());
         }
       } catch (error) {
@@ -72,13 +74,10 @@ export default function Home() {
     fetchDiscrepancies();
   }, []);
 
-  // Calculate timeline date range from data
+  // Calculate timeline date range from actual data
   const dates = discrepancies.map(d => d.date).sort();
-  const maxDate = dates[dates.length - 1] || "2025-11-11";
-  const firstDataDate = dates[0] || "2025-10-30";
-  const minDateObj = new Date(firstDataDate);
-  minDateObj.setDate(minDateObj.getDate() - 1);
-  const minDate = minDateObj.toISOString().split('T')[0];
+  const minDate = dates[0] || "2025-10-30";
+  const maxDate = dates[dates.length - 1] || "2025-11-09";
 
   // Filter discrepancies by selected datetime
   const selectedTime = new Date(selectedDateTime).getTime();
@@ -106,16 +105,37 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8 bg-white">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Potion Guard Dashboard</h1>
+        <h1 className="text-4xl font-bold mb-8">Potion Guard</h1>
 
-        <MapComponent />
+        {/* Two-Column Layout: Map (60%) and Forecast (40%) */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          {/* Left Column: Map (60% width = 3/5 columns) */}
+          <div className="md:col-span-3">
+            <div className="h-[520px]">
+              <MapComponent />
+            </div>
+          </div>
+          
+          {/* Right Column: Overflow Forecast (40% width = 2/5 columns) */}
+          <div className="md:col-span-2">
+            <div className="h-[520px]">
+              <OverflowForecast currentDateTime={selectedDateTime} />
+            </div>
+          </div>
+        </div>
+        
+        {/* Playback Slider */}
+        {discrepancies.length > 0 && (
+          <PlaybackSlider 
+            minDate={minDate}
+            maxDate={maxDate}
+            currentDateTime={selectedDateTime}
+            onDateTimeChange={setSelectedDateTime}
+          />
+        )}
         
         {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-4 mt-8">
-          <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-            <p className="text-sm text-gray-600">Total Cauldrons</p>
-            <p className="text-3xl font-bold text-blue-600">12</p>
-          </div>
+        <div className="grid grid-cols-2 gap-4 mt-8">
           <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200">
             <p className="text-sm text-gray-600">Loss Incidents</p>
             <p className="text-3xl font-bold text-red-600">{totalLosses}</p>
@@ -125,15 +145,6 @@ export default function Home() {
             <p className="text-3xl font-bold text-orange-600">{totalLostVolume.toFixed(1)}L</p>
           </div>
         </div>
-        
-        {discrepancies.length > 0 && (
-          <PlaybackSlider 
-            minDate={minDate}
-            maxDate={maxDate}
-            currentDateTime={selectedDateTime}
-            onDateTimeChange={setSelectedDateTime}
-          />
-        )}
         
         {/* Discrepancy Table */}
         <div className="w-full mt-8">

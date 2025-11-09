@@ -83,11 +83,15 @@ export async function getDrains(startDate: number = 0, endDate: number = 2000000
 
 /**
  * Fetches overflow forecast predictions for cauldrons
+ * @param endDate Unix timestamp for forecast end date (optional)
  * @returns Array of forecast objects with ETA to overflow
  */
-export async function getForecast() {
+export async function getForecast(endDate?: number) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/forecast`);
+    const url = endDate 
+      ? `${BACKEND_URL}/api/forecast?end_date=${endDate}`
+      : `${BACKEND_URL}/api/forecast`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch forecast: ${response.statusText}`);
     }
