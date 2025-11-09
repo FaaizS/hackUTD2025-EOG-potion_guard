@@ -14,7 +14,7 @@ except Exception:
 import math
 import requests
 
-# --- Import paths so we can reach analysis/ and fallback test module ---
+# Configure module import paths for analysis package
 HERE = os.path.abspath(os.path.dirname(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
@@ -22,7 +22,7 @@ ANALYSIS_DIR = os.path.join(HERE, "analysis")
 if os.path.isdir(ANALYSIS_DIR) and ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, ANALYSIS_DIR)
 
-# --- Prefer teammate module; fall back to your scratch module if needed ---
+# Import discrepancy detection functions with fallback support
 try:
     from analysis.discrepancy_detector import (  # type: ignore
         detect_all_drains_from_records,
@@ -38,12 +38,11 @@ except Exception:
         USING_FALLBACK = True
     except Exception as e:
         raise ImportError(
-            "Could not import discrepancy detector. "
-            "Create backend/analysis/discrepancy_detector.py (team) OR "
-            "backend/discrepancy_detector1.py (your temp file)."
+            "Could not import discrepancy detector module. "
+            "Ensure backend/analysis/discrepancy_detector.py exists."
         ) from e
 
-# ---- External challenge API base (public) ----
+# EOG API configuration and endpoints
 BASE_URL = os.getenv("CAULDRON_API_BASE", "https://hackutd2025.eog.systems")
 ENDPOINTS = {
     "data": f"{BASE_URL}/api/Data",
@@ -53,13 +52,13 @@ ENDPOINTS = {
     "network": f"{BASE_URL}/api/Information/network",
 }
 
-# ---- Flask app ----
+# Initialize Flask application with CORS support
 app = Flask(__name__)
 if CORS:
     CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ---------------------------------
-# Helpers
+# Helper Functions
 # ---------------------------------
 def fetch_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     r = requests.get(url, params=params, timeout=60)
@@ -78,7 +77,7 @@ def median(vals: List[float]) -> float:
     return float(s[m]) if n % 2 else float(0.5 * (s[m - 1] + s[m]))
 
 # ---------------------------------
-# Root / Health
+# Root and Health Check Endpoints
 # ---------------------------------
 @app.route("/", methods=["GET"])
 def root():
@@ -112,7 +111,7 @@ def health():
     return jsonify({"ok": True})
 
 # ---------------------------------
-# Legacy thin proxies (kept for compatibility)
+# Legacy Proxy Endpoints (for backward compatibility)
 # ---------------------------------
 @app.route("/data", methods=["GET"])
 def data_proxy_legacy():
@@ -138,7 +137,8 @@ def network_proxy():
     return jsonify(fetch_json(ENDPOINTS["network"]))
 
 # ---------------------------------
-# Required pass-through routes (with /api prefix)
+# Main API Pass-Through Endpoints
+# Proxy requests to EOG API with /api prefix
 # ---------------------------------
 @app.route("/api/cauldrons", methods=["GET"])
 def api_cauldrons():
@@ -156,7 +156,8 @@ def api_historical_data():
     return jsonify(payload)
 
 # ---------------------------------
-# Computed endpoints (drains/matches/bootstrap) for your frontend convenience
+# Computed Data Endpoints
+# Provide processed data combining drains and ticket matching
 # ---------------------------------
 @app.route("/drains", methods=["GET"])
 def drains_endpoint():
@@ -237,13 +238,14 @@ def bootstrap():
     })
 
 # ---------------------------------
-# BONUS: naive short-horizon forecast
+# Overflow Forecasting Endpoint
 # ---------------------------------
 @app.route("/api/forecast", methods=["GET"])
 def api_forecast():
     """
-    For each cauldron, estimate short-term fill rate (EWMA of +slopes over recent window),
-    then compute ETA to full: (max_volume - current_level) / max(r_fill, eps).
+    Predicts when each cauldron will reach capacity using EWMA fill rate estimation.
+    Computes time until overflow: (max_volume - current_level) / fill_rate
+    
     Returns: [{cauldron_id, current_level, max_volume, r_fill, eta_minutes}]
     """
     window_minutes = int(request.args.get("window_minutes", 120))  # last 2h by default
@@ -256,13 +258,14 @@ def api_forecast():
     cap_by = {c["id"]: float(c.get("max_volume") or 0.0) for c in cauldrons}
     history = fetch_json(ENDPOINTS["data"], params={"start_date": start, "end_date": end})
 
-    # build per-cauldron time series
+    # Build time series data for each cauldron
     series: Dict[str, List[Tuple[datetime, float]]] = {}
     for rec in history:
         ts = to_dt(rec["timestamp"])
         for cid, vol in rec.get("cauldron_levels", {}).items():
             series.setdefault(cid, []).append((ts, float(vol)))
-    # compute r_fill EWMA from positive slopes; find current level
+    
+    # Calculate fill rate using EWMA and predict overflow time
     out: List[Dict[str, Any]] = []
     for cid, rows in series.items():
         rows.sort(key=lambda t: t[0])
@@ -293,20 +296,22 @@ def api_forecast():
     return jsonify({"forecast": out})
 
 # ---------------------------------
-# BONUS: very-simple optimizer (greedy sketch)
+# Route Optimization Endpoint
 # ---------------------------------
 @app.route("/api/optimized-routes", methods=["POST"])
 def api_optimized_routes():
     """
+    Generates collection routes for witches to prevent cauldron overflows.
+    Uses greedy algorithm prioritizing fullest cauldrons.
+    
     Input JSON (optional):
       {
-        "witches": 1,               # starting crew size
-        "start_node": "market",     # start at market
-        "unload_minutes": 15
+        "witches": 1,              # Number of collection witches
+        "start_node": "market",    # Starting location
+        "unload_minutes": 15       # Time to unload at market
       }
 
-    Output: { "routes": [ {witch_id, stops:[{node_id, eta, action}] } ], "note": "...heuristic..." }
-    This is a toy heuristic to unblock the frontend; replace with a real VRP later.
+    Returns: { "routes": [ {witch_id, stops:[{node_id, eta, action}] } ], "note": "..." }
     """
     body = request.get_json(silent=True) or {}
     witches = int(body.get("witches", 1))
@@ -318,7 +323,7 @@ def api_optimized_routes():
     # latest snapshot
     history = fetch_json(ENDPOINTS["data"], params={"start_date": 0, "end_date": 2_000_000_000})
 
-    # build latest volume by cauldron
+    # Determine latest level for each cauldron
     latest_by: Dict[str, Tuple[datetime, float]] = {}
     for rec in history:
         ts = to_dt(rec["timestamp"])
@@ -326,7 +331,7 @@ def api_optimized_routes():
             if cid not in latest_by or ts >= latest_by[cid][0]:
                 latest_by[cid] = (ts, float(vol))
 
-    # simple priority by % full descending
+    # Prioritize cauldrons by fullness (descending order)
     caps = {c["id"]: float(c.get("max_volume") or 1.0) for c in cauldrons}
     targets = sorted(
         [{"cauldron_id": c["id"], "pct": (latest_by.get(c["id"], (None, 0.0))[1] / max(caps[c["id"]], 1.0))} for c in cauldrons],
@@ -334,7 +339,7 @@ def api_optimized_routes():
         reverse=True
     )
 
-    # travel times dictionary (undirected)
+    # Build travel time lookup table (bidirectional)
     travel: Dict[Tuple[str, str], float] = {}
     for e in network.get("edges", []):
         a, b = e.get("from"), e.get("to")
@@ -343,7 +348,7 @@ def api_optimized_routes():
             travel[(a, b)] = t
             travel[(b, a)] = t
 
-    # make a naive star route from Market visiting the top-N fullest cauldrons
+    # Generate star routes from market to fullest cauldrons
     market_id = market.get("id", "market")
     topN = min(len(targets), 5)  # keep short for UI demo
     stops = []
@@ -353,7 +358,7 @@ def api_optimized_routes():
         cid = targets[i]["cauldron_id"]
         t_travel = travel.get((here, cid), 10.0)  # default 10 min if edge missing
         eta_arrive = now + timedelta(minutes=t_travel)
-        # visit and drain, then return to market and unload
+        # Visit cauldron to drain, then return to market and unload
         t_back = travel.get((cid, market_id), 10.0)
         eta_unload = eta_arrive + timedelta(minutes=t_back + unload_minutes)
         stops.append({"from": here, "to": cid, "depart": now.isoformat(), "arrive": eta_arrive.isoformat()})
@@ -361,14 +366,15 @@ def api_optimized_routes():
         now = eta_unload
         here = market_id
 
+    # Distribute stops among witches
     routes = [{"witch_id": f"witch_{i+1}", "stops": stops[i::witches]} for i in range(witches)]
     return jsonify({
         "routes": routes,
-        "note": "Greedy demo: visit top-full cauldrons from Market, return and unload 15m each. Replace with proper VRP later."
+        "note": "Greedy heuristic: prioritizes fullest cauldrons with star routes from market."
     })
 
 # ---------------------------------
-# Dev server
+# Development Server Entry Point
 # ---------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5001")), debug=True)

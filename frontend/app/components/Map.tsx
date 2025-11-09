@@ -1,3 +1,13 @@
+/**
+ * MapComponent
+ * 
+ * Interactive map displaying cauldron locations using Leaflet
+ * Features:
+ * - Markers for each cauldron
+ * - Popup information on click
+ * - Centered on Denton, TX area
+ */
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,8 +15,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { getCauldrons } from "@/app/lib/apiClient";
 
-// Fix for default marker icons in Next.js
-// Leaflet's default icons don't work properly with webpack
+// Configure default marker icons for Next.js/Webpack compatibility
 const defaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -32,7 +41,6 @@ export default function MapComponent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch cauldron data when component mounts
     async function fetchCauldrons() {
       try {
         const data = await getCauldrons();
@@ -63,7 +71,7 @@ export default function MapComponent() {
     );
   }
 
-  // Center the map on Denton, TX (average of all cauldron coordinates)
+  // Center map on Denton, TX area
   const centerLat = 33.2148;
   const centerLng = -97.133;
 

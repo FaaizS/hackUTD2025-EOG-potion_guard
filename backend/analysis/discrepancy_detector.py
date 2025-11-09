@@ -1,7 +1,13 @@
 """
-Faaiz's Discrepancy Detection Module
-This module analyzes cauldron data to find potion theft by comparing
+Discrepancy Detection Module
+
+Analyzes cauldron time-series data to detect potion theft by comparing
 calculated drain volumes with official transport tickets.
+
+Key Functions:
+- calculate_fill_rates: Determines fill rate for each cauldron
+- detect_all_drains_from_records: Identifies drain events and calculates true volumes
+- match_tickets: Compares calculated drains with official tickets
 """
 
 import requests
@@ -113,20 +119,20 @@ def calculate_fill_rates(records: List[Dict]) -> Dict[str, float]:
 
 def detect_all_drains_from_records(records: List[Dict]) -> List[Dict]:
     """
-    STEP 2 & 3: Find all drain events and calculate their TRUE volumes.
+    Find all drain events and calculate their true volumes.
     
-    This is the CORE function that Abdullah's app.py calls!
+    This is the core detection function called by the API endpoints.
     
-    Logic:
-    1. Calculate fill rates first
+    Algorithm:
+    1. Calculate fill rates for all cauldrons
     2. Scan through data to find drain events (where level drops)
-    3. For each drain, apply the magic formula:
+    3. For each drain, apply the compensation formula:
        TRUE_VOLUME = (Level_Before - Level_After) + (Fill_Rate × Drain_Time)
        
     Why this formula?
-    - The cauldron is STILL FILLING during the drain
-    - So the observed drop is LESS than what was actually taken
-    - We need to add back what was filled during the drain
+    - Cauldrons continue filling during drain operations
+    - The observed level drop is less than the actual volume drained
+    - We compensate by adding back the volume that filled during the drain
     
     Args:
         records: List of time-series data from api/Data
@@ -183,8 +189,8 @@ def detect_all_drains_from_records(records: List[Dict]) -> List[Dict]:
                 
                 drain_time_minutes = (end_time - start_time).total_seconds() / 60.0
                 
-                # 🎯 THE MAGIC FORMULA 🎯
-                # This accounts for the fact that the cauldron is STILL FILLING during the drain
+                # Apply volume compensation formula
+                # Accounts for continued filling during the drain operation
                 observed_drop = level_before - level_after
                 filled_during_drain = fill_rate * drain_time_minutes
                 true_volume = observed_drop + filled_during_drain
@@ -218,15 +224,15 @@ def match_tickets(drains: List[Dict], tickets: List[Dict],
                   eps_pct: float = 0.05, eps_abs: float = 5.0, 
                   dummy_penalty: float = 50.0) -> List[Dict]:
     """
-    STEP 4: Compare calculated drains with official tickets to find discrepancies.
+    Compare calculated drains with official tickets to find discrepancies.
     
-    This is the SECOND function that Abdullah's app.py calls!
+    This function is called by the API to identify potential theft incidents.
     
-    Logic:
+    Process:
     1. Group drains by date and cauldron
     2. Group tickets by date and cauldron
     3. Compare expected (tickets) vs actual (calculated drains)
-    4. Identify theft (missing volume)
+    4. Identify discrepancies (missing or excess volume)
     
     Args:
         drains: List of drain events from detect_all_drains_from_records()
@@ -236,7 +242,7 @@ def match_tickets(drains: List[Dict], tickets: List[Dict],
         dummy_penalty: Penalty for unmatched items
     
     Returns:
-        List of discrepancy objects showing where potion was stolen
+        List of discrepancy objects with expected, actual, and missing volumes
     """
     print("\n🔎 Comparing drains with tickets to find discrepancies...")
     
@@ -324,11 +330,13 @@ def match_tickets(drains: List[Dict], tickets: List[Dict],
 # Legacy function for backwards compatibility
 def find_discrepancies():
     """
-    Legacy function - kept for backwards compatibility.
-    This was in the original skeleton but Abdullah's code uses the newer functions above.
+    Legacy convenience function that combines all detection steps.
+    
+    Note: Direct usage of detect_all_drains_from_records() and match_tickets()
+    is preferred for better control and flexibility.
     """
     print("⚠️ Warning: Using legacy find_discrepancies() function")
-    print("   Consider using detect_all_drains_from_records() and match_tickets() instead")
+    print("   Consider using detect_all_drains_from_records() and match_tickets() directly")
     
     # Fetch data directly
     records = get_data_from_api("/api/Data?start_date=0&end_date=2000000000")

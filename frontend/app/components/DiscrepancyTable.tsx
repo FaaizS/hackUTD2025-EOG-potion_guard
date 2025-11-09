@@ -1,3 +1,10 @@
+/**
+ * DiscrepancyTable Component
+ * 
+ * Displays discrepancies between expected (tickets) and actual (calculated) volumes
+ * Highlights rows with missing volume (potential theft) in red
+ */
+
 import { getDiscrepancies } from "@/app/lib/apiClient";
 
 interface Discrepancy {
@@ -10,7 +17,6 @@ interface Discrepancy {
 }
 
 export default async function DiscrepancyTable() {
-  // Fetch real data from the backend
   const discrepancies: Discrepancy[] = await getDiscrepancies();
 
   return (

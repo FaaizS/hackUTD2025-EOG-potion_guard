@@ -1,3 +1,13 @@
+/**
+ * Home Page - Potion Guard Dashboard
+ * 
+ * Main dashboard displaying:
+ * - Interactive map of cauldron locations
+ * - Statistics summary (cauldrons, incidents, volume lost)
+ * - Time playback slider for filtering
+ * - Discrepancy analysis table
+ */
+
 "use client";
 
 import dynamic from "next/dynamic";
@@ -5,8 +15,7 @@ import { useEffect, useState } from "react";
 import PlaybackSlider from "@/app/components/PlaybackSlider";
 import { getDiscrepancies } from "@/app/lib/apiClient";
 
-// Dynamically import Map component with SSR disabled
-// This prevents the "window is not defined" error since Leaflet needs the browser
+// Dynamically import Map component with SSR disabled for Leaflet compatibility
 const MapComponent = dynamic(() => import("@/app/components/Map"), {
   ssr: false,
   loading: () => (
@@ -35,7 +44,7 @@ export default function Home() {
       try {
         const data = await getDiscrepancies();
         
-        // Assign random times throughout each day to simulate gradual accumulation
+        // Assign random times throughout each day for time-based filtering
         const dataWithTimes = data.map((d: Discrepancy) => {
           const randomHour = Math.floor(Math.random() * 24);
           return {
@@ -46,7 +55,7 @@ export default function Home() {
         
         setDiscrepancies(dataWithTimes);
         
-        // Set initial datetime to start of one day before first data (show 0 thefts)
+        // Initialize timeline to start one day before first data point
         if (dataWithTimes.length > 0) {
           const dates = dataWithTimes.map((d: any) => d.date).sort();
           const firstDate = new Date(dates[0] + "T00:00:00");
@@ -63,26 +72,24 @@ export default function Home() {
     fetchDiscrepancies();
   }, []);
 
-  // Calculate date range from discrepancies
+  // Calculate timeline date range from data
   const dates = discrepancies.map(d => d.date).sort();
   const maxDate = dates[dates.length - 1] || "2025-11-11";
-  
-  // Set minDate to one day before the first data point so slider starts at 0 thefts
   const firstDataDate = dates[0] || "2025-10-30";
   const minDateObj = new Date(firstDataDate);
   minDateObj.setDate(minDateObj.getDate() - 1);
   const minDate = minDateObj.toISOString().split('T')[0];
 
-  // Filter discrepancies based on selected datetime (show only events before this time)
+  // Filter discrepancies by selected datetime
   const selectedTime = new Date(selectedDateTime).getTime();
   const filteredDiscrepancies = discrepancies.filter((d: any) => {
     const itemTime = new Date(d.timestamp).getTime();
     return itemTime <= selectedTime;
   });
 
-  // Count total thefts
-  const totalThefts = filteredDiscrepancies.filter(d => d.missing_volume > 0).length;
-  const totalStolenVolume = filteredDiscrepancies
+  // Calculate statistics from filtered data
+  const totalLosses = filteredDiscrepancies.filter(d => d.missing_volume > 0).length;
+  const totalLostVolume = filteredDiscrepancies
     .filter(d => d.missing_volume > 0)
     .reduce((sum, d) => sum + d.missing_volume, 0);
 
@@ -90,7 +97,7 @@ export default function Home() {
     return (
       <main className="min-h-screen p-8 bg-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-600">Loading Potion Guard Dashboard...</p>
+          <p className="text-2xl font-bold text-gray-600">Loading Dashboard...</p>
         </div>
       </main>
     );
@@ -110,12 +117,12 @@ export default function Home() {
             <p className="text-3xl font-bold text-blue-600">12</p>
           </div>
           <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200">
-            <p className="text-sm text-gray-600">Theft Incidents</p>
-            <p className="text-3xl font-bold text-red-600">{totalThefts}</p>
+            <p className="text-sm text-gray-600">Loss Incidents</p>
+            <p className="text-3xl font-bold text-red-600">{totalLosses}</p>
           </div>
           <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
-            <p className="text-sm text-gray-600">Total Stolen</p>
-            <p className="text-3xl font-bold text-orange-600">{totalStolenVolume.toFixed(1)}L</p>
+            <p className="text-sm text-gray-600">Total Lost</p>
+            <p className="text-3xl font-bold text-orange-600">{totalLostVolume.toFixed(1)}L</p>
           </div>
         </div>
         
@@ -150,8 +157,7 @@ export default function Home() {
                     <th className="border border-gray-300 p-2">Cauldron</th>
                     <th className="border border-gray-300 p-2">Expected (L)</th>
                     <th className="border border-gray-300 p-2">Actual (L)</th>
-                    <th className="border border-gray-300 p-2">Missing (L)</th>
-                    <th className="border border-gray-300 p-2">Status</th>
+                    <th className="border border-gray-300 p-2">Discrepancy (L)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -162,18 +168,7 @@ export default function Home() {
                       <td className="border border-gray-300 p-2">{item.expected_volume.toFixed(2)}</td>
                       <td className="border border-gray-300 p-2">{item.actual_volume.toFixed(2)}</td>
                       <td className={`border border-gray-300 p-2 ${item.missing_volume > 0 ? "text-red-600 font-bold" : "text-yellow-700 font-bold"}`}>
-                        {item.missing_volume.toFixed(2)}
-                      </td>
-                      <td className="border border-gray-300 p-2 text-center">
-                        {item.missing_volume > 0 ? (
-                          <span className="px-2 py-1 bg-red-600 text-white rounded text-sm font-bold">
-                            THEFT
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-yellow-600 text-white rounded text-sm">
-                            Leakage
-                          </span>
-                        )}
+                        {item.missing_volume > 0 ? '+' : ''}{item.missing_volume.toFixed(2)}
                       </td>
                     </tr>
                   ))}
