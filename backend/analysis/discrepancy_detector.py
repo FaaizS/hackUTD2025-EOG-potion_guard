@@ -267,13 +267,13 @@ def match_tickets(drains: List[Dict], tickets: List[Dict],
     tickets_by_day = defaultdict(lambda: defaultdict(float))
     
     for ticket in tickets:
-        # Parse the timestamp to get the date
-        timestamp = ticket.get("timestamp") or ticket.get("date")
-        if timestamp:
+        # Get the date (already in YYYY-MM-DD format)
+        date = ticket.get("date")
+        if date:
             try:
-                date = to_datetime(timestamp).strftime("%Y-%m-%d")
                 cauldron_id = ticket.get("cauldron_id") or ticket.get("cauldronId")
-                volume = float(ticket.get("volume", 0))
+                # API uses "amount_collected" not "volume"
+                volume = float(ticket.get("amount_collected", 0))
                 tickets_by_day[date][cauldron_id] += volume
             except Exception as e:
                 print(f"  ⚠️ Error parsing ticket: {e}")
