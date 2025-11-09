@@ -13,11 +13,12 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import PlaybackSlider from "@/app/components/PlaybackSlider";
 import OverflowForecast from "@/app/components/OverflowForecast";
 import DiscrepancyTable from "@/app/components/DiscrepancyTable";
 import { getDiscrepancies } from "@/app/lib/apiClient";
+import type { MapComponentRef } from "@/app/components/Map";
 
 // Dynamically import Map component with SSR disabled for Leaflet compatibility
 const MapComponent = dynamic(() => import("@/app/components/Map"), {
@@ -42,6 +43,7 @@ export default function Home() {
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDateTime, setSelectedDateTime] = useState<string>("");
+  const mapRef = useRef<MapComponentRef>(null);
 
   useEffect(() => {
     async function fetchDiscrepancies() {
@@ -122,14 +124,17 @@ export default function Home() {
           {/* Left Column: Map (60% width = 3/5 columns) */}
           <div className="md:col-span-3">
             <div className="h-[520px]">
-              <MapComponent />
+              <MapComponent ref={mapRef} />
             </div>
           </div>
           
           {/* Right Column: Overflow Forecast (40% width = 2/5 columns) */}
           <div className="md:col-span-2">
             <div className="h-[520px]">
-              <OverflowForecast currentDateTime={selectedDateTime} />
+              <OverflowForecast 
+                currentDateTime={selectedDateTime}
+                onCauldronClick={(cauldronId) => mapRef.current?.focusCauldron(cauldronId)}
+              />
             </div>
           </div>
         </div>

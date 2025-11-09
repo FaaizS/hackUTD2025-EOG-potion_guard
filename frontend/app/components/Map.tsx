@@ -10,8 +10,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { getCauldrons } from "@/app/lib/apiClient";
 
@@ -33,9 +33,14 @@ interface Cauldron {
   max_volume?: number;
 }
 
-export default function MapComponent() {
+export interface MapComponentRef {
+  focusCauldron: (cauldronId: string) => void;
+}
+
+const MapComponent = forwardRef<MapComponentRef>((props, ref) => {
   const [cauldrons, setCauldrons] = useState<Cauldron[]>([]);
   const [loading, setLoading] = useState(true);
+  const markerRefs = useRef<{ [key: string]: L.Marker }>({});
 
   useEffect(() => {
     async function fetchCauldrons() {
@@ -51,6 +56,21 @@ export default function MapComponent() {
 
     fetchCauldrons();
   }, []);
+
+  // Expose method to focus on a specific cauldron
+  useImperativeHandle(ref, () => ({
+    focusCauldron: (cauldronId: string) => {
+      const marker = markerRefs.current[cauldronId];
+      if (marker) {
+        marker.openPopup();
+        // Scroll the map container into view
+        const mapElement = document.querySelector('.leaflet-container');
+        if (mapElement) {
+          mapElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }));
 
   if (loading) {
     return (
@@ -91,6 +111,11 @@ export default function MapComponent() {
           <Marker
             key={cauldron.id}
             position={[cauldron.latitude, cauldron.longitude]}
+            ref={(marker) => {
+              if (marker) {
+                markerRefs.current[cauldron.id] = marker;
+              }
+            }}
           >
             <Popup>
               <div className="text-center">
@@ -109,4 +134,8 @@ export default function MapComponent() {
       </MapContainer>
     </div>
   );
-}
+});
+
+MapComponent.displayName = 'MapComponent';
+
+export default MapComponent;

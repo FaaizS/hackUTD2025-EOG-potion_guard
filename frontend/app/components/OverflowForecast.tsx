@@ -29,9 +29,10 @@ interface CauldronInfo {
 
 interface OverflowForecastProps {
   currentDateTime: string;
+  onCauldronClick?: (cauldronId: string) => void;
 }
 
-export default function OverflowForecast({ currentDateTime }: OverflowForecastProps) {
+export default function OverflowForecast({ currentDateTime, onCauldronClick }: OverflowForecastProps) {
   const [forecastData, setForecastData] = useState<ForecastData[]>([]);
   const [allCauldrons, setAllCauldrons] = useState<CauldronInfo[]>([]);
 
@@ -121,7 +122,8 @@ export default function OverflowForecast({ currentDateTime }: OverflowForecastPr
             return (
               <div
                 key={cauldron.cauldron_id}
-                className={`p-2.5 rounded-lg ${getStatusStyle(cauldron.eta_minutes)} flex flex-col`}
+                onClick={() => onCauldronClick?.(cauldron.cauldron_id)}
+                className={`p-2.5 rounded-lg ${getStatusStyle(cauldron.eta_minutes)} flex flex-col cursor-pointer hover:opacity-80 transition-opacity`}
               >
                 <h3 className="font-bold text-[11px] mb-1.5 leading-tight break-words">
                   {cauldron.cauldron_name}
